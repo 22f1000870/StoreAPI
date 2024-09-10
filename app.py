@@ -7,7 +7,7 @@ from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
 from resources.tag import blp as TagBlueprint
 from resources import UserBlueprint
-
+from blocklist import BLOCKLIST
 def create_app(db_url=None):
     app= Flask(__name__)
 
@@ -25,6 +25,16 @@ def create_app(db_url=None):
     api=Api(app)
     jwt=JWTManager(app)
 
+    @jwt.token_in_blocklist_loader
+    def check_token_in_blocklist(jwt_header,jwt_payload):
+        return jwt_payload['jti'] in BLOCKLIST
+    
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header,jwt_payload):
+        return (
+            jsonify ({"description":"token has been revoked","error":"token_revoked"}),401
+        )
+    
     @jwt.additional_claims_loader
     def add_claims(identity):
             #look into database and check if user is admin or not ,etc
@@ -33,21 +43,21 @@ def create_app(db_url=None):
         return {"is_admin":False}
     @jwt.expired_token_loader
     def expired_token_call(jwt_header,jwt_payload):
-        return {
+        return (
             jsonify( {"message":"The token has expired","error":"token_expired"}),401
-        }
+        )
     
     @jwt.invalid_token_loader
     def invalid_token_call(error):
-        return {
+        return (
             jsonify({"message":"Signature verification failed","error":"invalid_token"}),401
-        }
+        )
     
     @jwt.unauthorized_loader
     def missing_token_call(error):
-        return {
+        return (
             jsonify({"message":"Request does not conatain access token","error":"authorisation_error"}),401
-        }
+        )
     with app.app_context():
         db.create_all()
     api.register_blueprint(ItemBlueprint)
