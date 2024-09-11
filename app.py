@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_migrate import Migrate
 import os
 from flask_smorest import Api
 from db import db
@@ -22,6 +23,7 @@ def create_app(db_url=None):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
     app.config['JWT_SECRET_KEY']="junaid"  # use this in terminal import secrets secrets.SystemRandom().getrandbits(128) and assign this value to secret key
     db.init_app(app)
+    migrate=Migrate(app,db)
     api=Api(app)
     jwt=JWTManager(app)
 
@@ -58,8 +60,17 @@ def create_app(db_url=None):
         return (
             jsonify({"message":"Request does not conatain access token","error":"authorisation_error"}),401
         )
-    with app.app_context():
-        db.create_all()
+    
+    @jwt.needs_fresh_token_loader
+    def token_not_fresh_callback(jwt_header,jwt_payload):
+        return (
+            jsonify({
+                "description":"The token is not fresh",
+                "error":"fresh_token_Required"
+            }),401
+        )
+    app.app_context().push()
+    #     db.create_all()
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
     api.register_blueprint(TagBlueprint)
