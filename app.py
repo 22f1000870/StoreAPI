@@ -1,5 +1,5 @@
 from flask import Flask, jsonify
-from flask_migrate import Migrate
+from flask_migrate import Migrate, upgrade
 import os
 from flask_smorest import Api
 from db import db
@@ -69,7 +69,8 @@ def create_app(db_url=None):
                 "error":"fresh_token_Required"
             }),401
         )
-    app.app_context().push()
+    with app.app_context():
+        upgrade()
     #     db.create_all()
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
