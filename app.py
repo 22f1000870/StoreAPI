@@ -69,9 +69,9 @@ def create_app(db_url=None):
                 "error":"fresh_token_Required"
             }),401
         )
+
     with app.app_context():
         upgrade()
-    #     db.create_all()
     api.register_blueprint(ItemBlueprint)
     api.register_blueprint(StoreBlueprint)
     api.register_blueprint(TagBlueprint)
